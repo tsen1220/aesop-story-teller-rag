@@ -20,6 +20,7 @@ This project implements a RAG (Retrieval-Augmented Generation) based fable searc
 - **Embedding Model**: Sentence Transformers (paraphrase-multilingual-MiniLM-L12-v2)
 - **Python Package Manager**: UV
 - **Containerization**: Docker Compose
+- **Testing**: pytest with 97% code coverage
 
 ## Quick Start
 
@@ -163,10 +164,62 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 
 ### Install Dependencies
 
+#### Production Dependencies
+
 Install project dependencies using UV:
 
 ```bash
 uv pip install --directory backend -r backend/requirements.txt
+```
+
+#### Development Dependencies
+
+For development and testing, install development dependencies (includes production dependencies):
+
+```bash
+uv pip install --directory backend -r backend/requirements-dev.txt
+```
+
+This will install:
+- All production dependencies
+- Testing frameworks (pytest, pytest-cov, pytest-mock, pytest-asyncio)
+- Code quality tools (black, flake8)
+
+### Running Tests
+
+Run all unit tests with coverage report:
+
+```bash
+cd backend
+pytest
+```
+
+Run specific test file:
+
+```bash
+pytest tests/test_main.py -v
+```
+
+Run tests with detailed coverage report:
+
+```bash
+pytest --cov=src --cov-report=html --cov-report=term-missing
+```
+
+The project maintains **97% test coverage** with a minimum threshold of 90%.
+
+#### Test Coverage by Module
+
+- `src/embeddings.py`: 100%
+- `src/init_database.py`: 100%
+- `src/main.py`: 99%
+- `src/qdrant_manager.py`: 95%
+- `src/data_processor.py`: 90%
+
+View detailed coverage report:
+```bash
+open htmlcov/index.html  # macOS
+xdg-open htmlcov/index.html  # Linux
 ```
 
 ### Stop Services
@@ -190,8 +243,18 @@ story-teller-rag/
 │   │   ├── embeddings.py        # Embedding model wrapper
 │   │   ├── qdrant_manager.py    # Qdrant manager
 │   │   └── data_processor.py    # Data processing utilities
+│   ├── tests/                   # Unit tests (97% coverage)
+│   │   ├── conftest.py          # Shared test fixtures
+│   │   ├── test_main.py         # API endpoint tests
+│   │   ├── test_embeddings.py   # Embedding model tests
+│   │   ├── test_qdrant_manager.py
+│   │   ├── test_init_database.py
+│   │   └── test_data_processor.py
 │   ├── data/                    # Data directory
-│   ├── requirements.txt         # Python dependencies
+│   ├── requirements.txt         # Production dependencies
+│   ├── requirements-dev.txt     # Development dependencies
+│   ├── pytest.ini               # Pytest configuration
+│   ├── .coveragerc              # Coverage configuration
 │   ├── Dockerfile
 │   └── .env.example
 ├── docker-compose.yml           # Docker Compose configuration
