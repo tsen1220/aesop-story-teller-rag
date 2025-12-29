@@ -1,5 +1,4 @@
 services:
-  # Qdrant vector database
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant-fables
@@ -8,8 +7,6 @@ services:
       - "6334:6334"
     volumes:
       - ./qdrant_storage:/qdrant/storage
-    environment:
-      - QDRANT__SERVICE__GRPC_PORT=6334
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "timeout 5s bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
@@ -17,19 +14,3 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-
-  # Backend API service
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: fables-api
-    ports:
-      - "8000:8000"
-    depends_on:
-      qdrant:
-        condition: service_healthy
-    restart: unless-stopped
-    volumes:
-      - ./backend:/app
-    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
