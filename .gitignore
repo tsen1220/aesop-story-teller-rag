@@ -95,6 +95,7 @@ logs/
 # Model cache
 .cache/
 models/
+!src/models/
 *.model
 
 # Database backups

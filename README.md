@@ -1,294 +1,238 @@
-# Fable RAG System
+# Fable RAG System 🦊📚
 
-A fable story retrieval system using vector database and semantic search technology.
+A Retrieval-Augmented Generation (RAG) system for Aesop's Fables, built with FastAPI, Qdrant vector database, and multiple LLM providers.
 
-## Overview
+## Features
 
-This project implements a RAG (Retrieval-Augmented Generation) based fable search system that finds relevant fables based on semantic similarity.
+- 🔍 **Semantic Search** - Find fables by meaning, not just keywords
+- 🤖 **Multi-LLM Support** - Switch between Ollama, Claude CLI, Gemini CLI, and Codex
+- 📊 **Vector Embeddings** - Using `paraphrase-multilingual-MiniLM-L12-v2` for multilingual support
+- 🚀 **High Performance** - Qdrant vector database for fast similarity search
+- ✅ **Well Tested** - 98% code coverage with comprehensive unit tests
 
-### Key Features
+## Architecture
 
-- Semantic story search
-- Vectorized text storage
-- RESTful API interface
-- Multilingual embedding model support
-
-### Tech Stack
-
-- **Backend Framework**: FastAPI
-- **Vector Database**: Qdrant
-- **Embedding Model**: Sentence Transformers (paraphrase-multilingual-MiniLM-L12-v2)
-- **Python Package Manager**: UV
-- **Containerization**: Docker Compose
-- **Testing**: pytest with 97% code coverage
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      FastAPI Application                      │
+├──────────────────────────────────────────────────────────────┤
+│  Handlers: /search, /generate, /fables, /health              │
+├──────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────┐    ┌─────────────────────────────┐  │
+│  │   Embedding Model   │    │      LLM Providers          │  │
+│  │ (Sentence-Transf.)  │    │ Ollama│Claude│Gemini│Codex  │  │
+│  └──────────┬──────────┘    └────────────┬────────────────┘  │
+│             │                            │                    │
+├─────────────┼────────────────────────────┼────────────────────┤
+│             v                            v                    │
+│      ┌─────────────┐              ┌───────────┐              │
+│      │   Qdrant    │              │  LLM API  │              │
+│      │  (Vectors)  │              │           │              │
+│      └─────────────┘              └───────────┘              │
+└──────────────────────────────────────────────────────────────┘
+```
 
 ## Quick Start
 
 ### Prerequisites
 
 - Python 3.12+
-- [UV](https://docs.astral.sh/uv/) (Python package manager)
-- Docker & Docker Compose
+- Docker (for Qdrant)
+- Ollama (optional, for local LLM)
 
-### 1. Clone the Repository
+### Installation
 
-```bash
-git clone <repository-url>
-cd story-teller-rag
-```
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd fable-rag
+   ```
 
-### 2. Configure Environment Variables
+2. **Create virtual environment and install dependencies**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -e ".[dev]"
+   ```
 
-Copy the example environment file and adjust as needed:
+3. **Configure environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env to configure your settings
+   ```
 
-```bash
-cp backend/.env.example backend/.env
-```
+4. **Start Qdrant**
+   ```bash
+   docker-compose up -d
+   ```
 
-### 3. Start Vector Database
+5. **Initialize the database**
+   ```bash
+   python -m src.init_database
+   ```
 
-Start Qdrant vector database using Docker Compose:
+6. **Run the API server**
+   ```bash
+   python -m src.main
+   # or
+   uvicorn src.main:app --reload
+   ```
 
-```bash
-docker compose up qdrant -d
-```
+The API will be available at `http://localhost:8000`
 
-### 4. Initialize Database
+## Configuration
 
-Run the database initialization script using UV:
+Configuration is managed via environment variables. See `.env.example`:
 
-```bash
-uv run --directory backend python -m src.init_database
-```
-
-This step will:
-- Load fable story data
-- Generate text embeddings
-- Insert data into Qdrant database
-
-### 5. Start API Service
-
-#### Option A: Using Docker Compose (Recommended)
-
-```bash
-docker compose up -d
-```
-
-The API will be available at `http://localhost:8000`.
-
-#### Option B: Using UV (Local Development)
-
-```bash
-uv run --directory backend uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### 6. Test the API
-
-Visit the following URLs to view API documentation:
-
-- Swagger UI: http://localhost:8000/docs
-
-Or test using curl:
-
-```bash
-# Health check
-curl http://localhost:8000/health
-
-# Search stories
-curl -X POST http://localhost:8000/search \
-  -H "Content-Type: application/json" \
-  -d '{"query": "a story about honesty", "limit": 3}'
-```
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `QDRANT_HOST` | `localhost` | Qdrant server host |
+| `QDRANT_PORT` | `6333` | Qdrant server port |
+| `QDRANT_COLLECTION_NAME` | `fables` | Vector collection name |
+| `EMBEDDING_MODEL` | `paraphrase-multilingual-MiniLM-L12-v2` | Sentence Transformer model |
+| `LLM_PROVIDERS` | `ollama` | Comma-separated list of enabled LLM providers |
+| `LLM_DEFAULT_PROVIDER` | `ollama` | Default LLM provider |
+| `OLLAMA_MODELS` | `llama3.1:8b` | Comma-separated list of Ollama models |
+| `API_HOST` | `0.0.0.0` | API server host |
+| `API_PORT` | `8000` | API server port |
 
 ## API Endpoints
 
-### GET /health
-Check system health status
+### Health Check
 
-### POST /search
-Search for similar fables
+```bash
+GET /health
+```
 
-**Request Example**:
-```json
+Returns system status and collection info.
+
+### Search Fables
+
+```bash
+POST /search
+Content-Type: application/json
+
 {
-  "query": "a story about honesty and lying",
+  "query": "story about honesty",
   "limit": 5,
-  "score_threshold": 0.7
+  "score_threshold": 0.5
 }
 ```
 
-**Response Example**:
-```json
+### Generate Answer (RAG)
+
+```bash
+POST /generate
+Content-Type: application/json
+
 {
-  "query": "a story about honesty and lying",
-  "results": [
-    {
-      "id": 1,
-      "title": "The Boy Who Cried Wolf",
-      "content": "...",
-      "moral": "...",
-      "score": 0.85,
-      "language": "en",
-      "word_count": 150
-    }
-  ],
-  "total_results": 1
+  "query": "What can we learn about honesty from fables?",
+  "limit": 3,
+  "provider": "ollama",
+  "ollama_model": "llama3.1:8b"
 }
 ```
 
-### GET /fables/{fable_id}
-Get a specific fable by ID
-
-## Development Guide
-
-### Environment Variables
-
-```env
-# Qdrant Database Configuration
-QDRANT_HOST=localhost
-QDRANT_PORT=6333
-QDRANT_COLLECTION_NAME=fables
-
-# Embedding Model
-EMBEDDING_MODEL=paraphrase-multilingual-MiniLM-L12-v2
-
-# Data Paths
-RAW_DATA_PATH=data/aesop_fables_raw.json
-DATA_PATH=data/aesop_fables_processed.json
-
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=8000
-CORS_ORIGINS=http://localhost:3000,http://localhost:5173
-```
-
-### Install Dependencies
-
-#### Production Dependencies
-
-Install project dependencies using UV:
+### Get Fable by ID
 
 ```bash
-uv pip install --directory backend -r backend/requirements.txt
+GET /fables/{fable_id}
 ```
 
-#### Development Dependencies
+### API Documentation
 
-For development and testing, install development dependencies (includes production dependencies):
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
 
-```bash
-uv pip install --directory backend -r backend/requirements-dev.txt
-```
+## LLM Providers
 
-This will install:
-- All production dependencies
-- Testing frameworks (pytest, pytest-cov, pytest-mock, pytest-asyncio)
-- Code quality tools (black, flake8)
-
-### Running Tests
-
-Run all unit tests with coverage report:
-
-```bash
-cd backend
-pytest
-```
-
-Run specific test file:
-
-```bash
-pytest tests/test_main.py -v
-```
-
-Run tests with detailed coverage report:
-
-```bash
-pytest --cov=src --cov-report=html --cov-report=term-missing
-```
-
-The project maintains **97% test coverage** with a minimum threshold of 90%.
-
-#### Test Coverage by Module
-
-- `src/embeddings.py`: 100%
-- `src/init_database.py`: 100%
-- `src/main.py`: 99%
-- `src/qdrant_manager.py`: 95%
-- `src/data_processor.py`: 90%
-
-View detailed coverage report:
-```bash
-open htmlcov/index.html  # macOS
-xdg-open htmlcov/index.html  # Linux
-```
-
-### Stop Services
-
-```bash
-# Stop all containers
-docker compose down
-
-# Stop and remove volumes
-docker compose down -v
-```
+| Provider | Description | Requirements |
+|----------|-------------|--------------|
+| `ollama` | Local LLM via Ollama | [Ollama](https://ollama.ai/) installed |
+| `claude_code` | Claude via CLI | `claude` CLI tool |
+| `gemini_cli` | Gemini via CLI | `gemini` CLI tool |
+| `codex` | Codex via CLI | `codex` CLI tool |
 
 ## Project Structure
 
 ```
-story-teller-rag/
-├── backend/
-│   ├── src/
-│   │   ├── main.py              # FastAPI application
-│   │   ├── init_database.py     # Database initialization script
-│   │   ├── embeddings.py        # Embedding model wrapper
-│   │   ├── qdrant_manager.py    # Qdrant manager
-│   │   └── data_processor.py    # Data processing utilities
-│   ├── tests/                   # Unit tests (97% coverage)
-│   │   ├── conftest.py          # Shared test fixtures
-│   │   ├── test_main.py         # API endpoint tests
-│   │   ├── test_embeddings.py   # Embedding model tests
-│   │   ├── test_qdrant_manager.py
-│   │   ├── test_init_database.py
-│   │   └── test_data_processor.py
-│   ├── data/                    # Data directory
-│   ├── requirements.txt         # Production dependencies
-│   ├── requirements-dev.txt     # Development dependencies
-│   ├── pytest.ini               # Pytest configuration
-│   ├── .coveragerc              # Coverage configuration
-│   ├── Dockerfile
-│   └── .env.example
-├── docker-compose.yml           # Docker Compose configuration
-└── README.md
+fable-rag/
+├── src/
+│   ├── handlers/          # API route handlers
+│   │   ├── fables.py      # GET /fables/{id}
+│   │   ├── generate.py    # POST /generate
+│   │   ├── health.py      # GET /health
+│   │   └── search.py      # POST /search
+│   ├── llm/               # LLM provider integrations
+│   │   ├── claude_code.py
+│   │   ├── codex.py
+│   │   ├── gemini_cli.py
+│   │   └── ollama.py
+│   ├── models/            # Pydantic request/response models
+│   ├── config.py          # Configuration management
+│   ├── dependencies.py    # Dependency injection
+│   ├── embeddings.py      # Embedding model wrapper
+│   ├── init_database.py   # Database initialization script
+│   ├── main.py            # FastAPI application entrypoint
+│   └── qdrant_manager.py  # Qdrant client wrapper
+├── tests/                 # Unit tests (98% coverage)
+├── data/                  # Fables data (JSON)
+├── docker-compose.yml     # Qdrant container config
+└── pyproject.toml         # Project configuration
 ```
 
-## Troubleshooting
+## Development
 
-### Qdrant Connection Failed
-
-Check if the Qdrant container is running:
+### Running Tests
 
 ```bash
-docker compose ps
+# Run all tests with coverage
+pytest tests/ -v --cov=src --cov-report=term-missing
+
+# Run specific test file
+pytest tests/test_main.py -v
 ```
 
-If not running, start it:
+### Code Quality
 
 ```bash
-docker compose up qdrant -d
+# Format code
+black src tests
+
+# Lint code
+flake8 src tests
 ```
 
-### Collection Does Not Exist
+## Test Coverage
 
-If the API reports that the collection doesn't exist, run the initialization script:
-
-```bash
-uv run --directory backend python -m src.init_database
 ```
-
-### Permission Error
-
-Ensure the `qdrant_storage` directory has the correct read/write permissions.
+Name                       Stmts   Miss  Cover
+----------------------------------------------
+src/__init__.py                1      0   100%
+src/config.py                 14      0   100%
+src/data_processor.py         39      4    90%
+src/dependencies.py           29      0   100%
+src/embeddings.py             18      0   100%
+src/handlers/__init__.py      11      0   100%
+src/handlers/fables.py        18      0   100%
+src/handlers/generate.py      45      0   100%
+src/handlers/health.py        24      1    96%
+src/handlers/search.py        16      0   100%
+src/init_database.py          56      0   100%
+src/llm/__init__.py            5      0   100%
+src/llm/claude_code.py        31      1    97%
+src/llm/codex.py              40      2    95%
+src/llm/gemini_cli.py         32      1    97%
+src/llm/ollama.py             51      0   100%
+src/main.py                   27      1    96%
+src/models/__init__.py         3      0   100%
+src/models/requests.py        11      0   100%
+src/models/responses.py       25      0   100%
+src/qdrant_manager.py         59      3    95%
+----------------------------------------------
+TOTAL                        555     13    98%
+```
 
 ## License
 
-MIT
+MIT License

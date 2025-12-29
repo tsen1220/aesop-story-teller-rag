@@ -69,8 +69,8 @@ class TestLifecycleEvents:
     """Test application lifecycle events"""
 
     @pytest.mark.asyncio
-    @patch('src.main.EmbeddingModel')
-    @patch('src.main.QdrantManager')
+    @patch('src.dependencies.EmbeddingModel')
+    @patch('src.dependencies.QdrantManager')
     async def test_startup_event_success(self, mock_qdrant_cls, mock_emb_cls):
         """Test successful startup event"""
         # Arrange
@@ -94,8 +94,8 @@ class TestLifecycleEvents:
         mock_qdrant_cls.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('src.main.EmbeddingModel')
-    @patch('src.main.QdrantManager')
+    @patch('src.dependencies.EmbeddingModel')
+    @patch('src.dependencies.QdrantManager')
     async def test_startup_event_collection_missing(self, mock_qdrant_cls, mock_emb_cls):
         """Test startup when collection doesn't exist"""
         # Arrange
@@ -134,10 +134,10 @@ class TestHealthCheckEndpoint:
 
     def test_health_check_success(self, client, mock_embedding_model_instance, mock_qdrant_manager_instance):
         """Test health check with initialized system"""
-        # Arrange - set global variables
-        import src.main as main_module
-        main_module.embedding_model = mock_embedding_model_instance
-        main_module.qdrant_manager = mock_qdrant_manager_instance
+        # Arrange - set global variables in dependencies module
+        import src.dependencies as deps_module
+        deps_module.embedding_model = mock_embedding_model_instance
+        deps_module.qdrant_manager = mock_qdrant_manager_instance
 
         # Act
         response = client.get("/health")
@@ -152,9 +152,9 @@ class TestHealthCheckEndpoint:
     def test_health_check_not_initialized(self, client):
         """Test health check when system is not initialized"""
         # Arrange - ensure globals are None
-        import src.main as main_module
-        main_module.embedding_model = None
-        main_module.qdrant_manager = None
+        import src.dependencies as deps_module
+        deps_module.embedding_model = None
+        deps_module.qdrant_manager = None
 
         # Act
         response = client.get("/health")
@@ -166,12 +166,12 @@ class TestHealthCheckEndpoint:
     def test_health_check_collection_missing(self, client, mock_embedding_model_instance):
         """Test health check when collection doesn't exist"""
         # Arrange
-        import src.main as main_module
-        main_module.embedding_model = mock_embedding_model_instance
+        import src.dependencies as deps_module
+        deps_module.embedding_model = mock_embedding_model_instance
 
         mock_qdrant = MagicMock()
         mock_qdrant.get_collection_info.return_value = None
-        main_module.qdrant_manager = mock_qdrant
+        deps_module.qdrant_manager = mock_qdrant
 
         # Act
         response = client.get("/health")
@@ -183,12 +183,12 @@ class TestHealthCheckEndpoint:
     def test_health_check_exception(self, client, mock_embedding_model_instance):
         """Test health check with exception"""
         # Arrange
-        import src.main as main_module
-        main_module.embedding_model = mock_embedding_model_instance
+        import src.dependencies as deps_module
+        deps_module.embedding_model = mock_embedding_model_instance
 
         mock_qdrant = MagicMock()
         mock_qdrant.get_collection_info.side_effect = Exception('Database error')
-        main_module.qdrant_manager = mock_qdrant
+        deps_module.qdrant_manager = mock_qdrant
 
         # Act
         response = client.get("/health")
@@ -203,9 +203,9 @@ class TestSearchEndpoint:
     def test_search_success(self, client, mock_embedding_model_instance, mock_qdrant_manager_instance):
         """Test successful search"""
         # Arrange
-        import src.main as main_module
-        main_module.embedding_model = mock_embedding_model_instance
-        main_module.qdrant_manager = mock_qdrant_manager_instance
+        import src.dependencies as deps_module
+        deps_module.embedding_model = mock_embedding_model_instance
+        deps_module.qdrant_manager = mock_qdrant_manager_instance
 
         # Act
         response = client.post("/search", json={
@@ -225,9 +225,9 @@ class TestSearchEndpoint:
     def test_search_with_threshold(self, client, mock_embedding_model_instance, mock_qdrant_manager_instance):
         """Test search with score threshold"""
         # Arrange
-        import src.main as main_module
-        main_module.embedding_model = mock_embedding_model_instance
-        main_module.qdrant_manager = mock_qdrant_manager_instance
+        import src.dependencies as deps_module
+        deps_module.embedding_model = mock_embedding_model_instance
+        deps_module.qdrant_manager = mock_qdrant_manager_instance
 
         # Act
         response = client.post("/search", json={
@@ -255,9 +255,9 @@ class TestSearchEndpoint:
     def test_search_limit_boundaries(self, client, mock_embedding_model_instance, mock_qdrant_manager_instance):
         """Test search with limit boundaries (1-20)"""
         # Arrange
-        import src.main as main_module
-        main_module.embedding_model = mock_embedding_model_instance
-        main_module.qdrant_manager = mock_qdrant_manager_instance
+        import src.dependencies as deps_module
+        deps_module.embedding_model = mock_embedding_model_instance
+        deps_module.qdrant_manager = mock_qdrant_manager_instance
 
         # Test valid limit
         response = client.post("/search", json={
@@ -282,9 +282,9 @@ class TestSearchEndpoint:
     def test_search_not_initialized(self, client):
         """Test search when system is not initialized"""
         # Arrange
-        import src.main as main_module
-        main_module.embedding_model = None
-        main_module.qdrant_manager = None
+        import src.dependencies as deps_module
+        deps_module.embedding_model = None
+        deps_module.qdrant_manager = None
 
         # Act
         response = client.post("/search", json={
@@ -298,12 +298,12 @@ class TestSearchEndpoint:
     def test_search_no_results(self, client, mock_embedding_model_instance):
         """Test search with no results"""
         # Arrange
-        import src.main as main_module
-        main_module.embedding_model = mock_embedding_model_instance
+        import src.dependencies as deps_module
+        deps_module.embedding_model = mock_embedding_model_instance
 
         mock_qdrant = MagicMock()
         mock_qdrant.search.return_value = []
-        main_module.qdrant_manager = mock_qdrant
+        deps_module.qdrant_manager = mock_qdrant
 
         # Act
         response = client.post("/search", json={
@@ -320,12 +320,12 @@ class TestSearchEndpoint:
     def test_search_exception(self, client, mock_embedding_model_instance):
         """Test search with exception"""
         # Arrange
-        import src.main as main_module
-        main_module.embedding_model = mock_embedding_model_instance
+        import src.dependencies as deps_module
+        deps_module.embedding_model = mock_embedding_model_instance
 
         mock_qdrant = MagicMock()
         mock_qdrant.search.side_effect = Exception('Search error')
-        main_module.qdrant_manager = mock_qdrant
+        deps_module.qdrant_manager = mock_qdrant
 
         # Act
         response = client.post("/search", json={
@@ -343,8 +343,8 @@ class TestGetFableEndpoint:
     def test_get_fable_by_id_success(self, client, mock_qdrant_manager_instance):
         """Test successfully getting a fable by ID"""
         # Arrange
-        import src.main as main_module
-        main_module.qdrant_manager = mock_qdrant_manager_instance
+        import src.dependencies as deps_module
+        deps_module.qdrant_manager = mock_qdrant_manager_instance
 
         # Act
         response = client.get("/fables/1")
@@ -360,10 +360,10 @@ class TestGetFableEndpoint:
     def test_get_fable_by_id_not_found(self, client):
         """Test getting a fable that doesn't exist"""
         # Arrange
-        import src.main as main_module
+        import src.dependencies as deps_module
         mock_qdrant = MagicMock()
         mock_qdrant.client.retrieve.return_value = []
-        main_module.qdrant_manager = mock_qdrant
+        deps_module.qdrant_manager = mock_qdrant
 
         # Act
         response = client.get("/fables/999")
@@ -374,8 +374,8 @@ class TestGetFableEndpoint:
     def test_get_fable_by_id_not_initialized(self, client):
         """Test getting fable when system is not initialized"""
         # Arrange
-        import src.main as main_module
-        main_module.qdrant_manager = None
+        import src.dependencies as deps_module
+        deps_module.qdrant_manager = None
 
         # Act
         response = client.get("/fables/1")
@@ -386,10 +386,10 @@ class TestGetFableEndpoint:
     def test_get_fable_by_id_exception(self, client):
         """Test getting fable with exception"""
         # Arrange
-        import src.main as main_module
+        import src.dependencies as deps_module
         mock_qdrant = MagicMock()
         mock_qdrant.client.retrieve.side_effect = Exception('Retrieve error')
-        main_module.qdrant_manager = mock_qdrant
+        deps_module.qdrant_manager = mock_qdrant
 
         # Act
         response = client.get("/fables/1")
